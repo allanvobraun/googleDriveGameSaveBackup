@@ -3,24 +3,6 @@ from pydrive.drive import GoogleDrive
 from glob import glob
 import os
 import ntpath
-import warnings
-warnings.filterwarnings("error")
-
-DRIVE_FOLDER_ID = '1vyXexEHdgwLLgeSwLdbD8jOea5B4wzdi'
-SAVES_FOLDER = 'C:/Users/allan/Documents/My Games/Fallout4/Saves/' + '*.fos'
-
-gauth = GoogleAuth()
-
-try:
-    gauth.LoadCredentialsFile("credentials.txt")
-except UserWarning:
-    warnings.filterwarnings("ignore")
-    gauth.LocalWebserverAuth()
-    gauth.SaveCredentialsFile("credentials.txt")
-
-warnings.filterwarnings("ignore")
-
-drive = GoogleDrive(gauth)
 
 
 def filter_most_recent_files(files: list, n: int):
@@ -35,7 +17,8 @@ def upload_files():
         file = drive.CreateFile({'parents': [{'id': DRIVE_FOLDER_ID}], 'title': ntpath.basename(file_path)})
         file.SetContentFile(file_path)
         file.Upload()
-    print("Novos arquivos salvos no google drive")
+        print(f"Arquivo {ntpath.basename(file_path)} salvo no drive")
+    print("Todos os arquivos foram salvos no google drive")
 
 
 def clean_folder():
@@ -46,5 +29,31 @@ def clean_folder():
 
 
 if __name__ == '__main__':
+
+    DRIVE_FOLDER_ID = '1vyXexEHdgwLLgeSwLdbD8jOea5B4wzdi'
+    SAVES_FOLDER = 'C:/Users/allan/Documents/My Games/Fallout4/Saves/' + '*.fos'
+
+    gauth = GoogleAuth()
+    # Try to load saved client credentials
+    gauth.LoadCredentialsFile("credentials.txt")
+    if gauth.credentials is None:
+        print("Ainda não autenticado")
+
+        gauth.GetFlow()
+        gauth.flow.params.update({'access_type': 'offline'})
+        gauth.flow.params.update({'approval_prompt': 'force'})
+
+        gauth.LocalWebserverAuth()
+    elif gauth.access_token_expired:
+        print("O token expirou")
+        gauth.Refresh()
+    else:
+        gauth.Authorize()
+
+    gauth.SaveCredentialsFile("credentials.txt")
+    drive = GoogleDrive(gauth)
+
     clean_folder()
     upload_files()
+    print("Fim do programa")
+    exit(0)
